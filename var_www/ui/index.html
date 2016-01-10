@@ -1,0 +1,212 @@
+﻿<!DOCTYPE html>
+<html lang="ru" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<title>Light Control</title>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="">
+	<meta name="author" content="">
+	<link rel="icon" href="favicon.ico">
+
+	<link rel="stylesheet" href="js/ui/jquery-ui.min.css" >
+	
+	<style rel="stylesheet">
+	
+		body 
+		{
+			background-color: #222222;
+			_font-family: 'Times New Roman';
+			_font-size: 1em;
+			color: white;
+		}
+		.output-dialog button
+		{
+			width:250px;
+		}
+		.control-row .name
+		{
+			width:150px;
+			font-weight:bold;
+			font-size: 1.5em;
+			text-align: right;
+			color: white;
+		}
+		
+		.control-row .state,
+		.control-row .enabled
+		{
+			_width:100px;
+			padding-left: 20px;
+		}
+		
+		.category
+		{
+			color: #DA6D50;
+			font-weight:bold;
+			font-size: 2em;
+			font-style: italic;
+			
+			margin-left:0.5em;
+			margin-right:0.5em;
+			margin-top:0.3em;
+			padding-bottom:0.3em;
+			margin-bottom:0.3em;
+			border-bottom: solid .1em #DA6D50;
+		}
+		table.buttons
+		{
+			margin-bottom: 1em;
+		}
+		table.buttons td
+		{
+			padding-bottom:10px;
+		}
+		.update
+		{
+			position:fixed;
+			top:1em;
+			right:1em;
+			padding:3px;
+			_background-color: green;
+			color: white;
+			_border: solid 1px white;
+		}
+		.update a
+		{
+			color: white;
+		}
+		.template
+		{
+			display:none;
+		}
+		.buttons-list
+		{
+			padding-left: 1em;
+		}
+		.buttons-list button
+		{
+			width:6em;
+			display: inline-block;
+			margin-bottom: 0.5em;
+		}
+	</style>
+	
+	<script src="js/jquery.min.js" type="text/javascript"></script>
+	<script src="js/ui/jquery-ui.min.js" type="text/javascript"></script>
+	
+</head>
+<body>
+	
+	<div class="category">Состояние</div>
+	<table class="js-therm-list buttons">
+		<tr class="js-control-row control-row" data-id="core0">
+			<td class="name">Core 0</td>
+			<td class="enabled"><button><span class="js-value">??.?</span><span class="js-mes">°</span></button></td>
+			<td class="enabled"><span class="js-time">-</span></td>
+		</tr>
+		<tr class="js-control-row control-row" data-id="core1">
+			<td class="name">Core 1</td>
+			<td class="enabled"><button><span class="js-value">??.?</span><span class="js-mes">°</span></button></td>
+			<td class="enabled"><span class="js-time">-</span></td>
+		</tr>
+		<tr class="js-control-row control-row" data-id="mb">
+			<td class="name">MotherBoard</td>
+			<td class="enabled"><button><span class="js-value">??.?</span><span class="js-mes">°</span></button></td>
+			<td class="enabled"><span class="js-time">-</span></td>
+		</tr>
+		<tr class="js-control-row control-row" data-id="fan">
+			<td class="name">Fan</td>
+			<td class="enabled"><button><span class="js-value">??.?</span><span class="js-mes">°</span></button></td>
+			<td class="enabled"><span class="js-time">-</span></td>
+		</tr>
+	</table>
+	
+	<div class="category">Камеры</div>
+	<div class="js-buttons-list buttons-list">
+		<button onclick="location.href='./cam1.html'">Дверь</button>
+		<button onclick="location.href='./cam2.html'">Балкон</button>
+		<button onclick="location.href='./cam_all.html'">Все</button>
+	</div>
+	
+	
+	<div class="update"><a href="./"><span class="js-update">&nbsp;</span></a></div>
+	
+	
+	<script type="text/javascript">
+		
+		function showUpdateMsg(msg)
+		{
+			$(".js-update").html(msg);
+		};
+		
+		function checkTherm()
+		{
+			$(".js-therm-list .js-control-row").each(function()
+			{
+				var node = $(this);
+				var id = node.data("id");
+				
+				loadThermData(id, function(model)
+				{
+					updateThermNode(node,model);
+				});
+			});
+		};
+		
+		function loadThermData(id, fnLoadEnd)
+		{
+			var url  ="/therm.py?id="+id;
+			var x=$.post(url,function(data)
+			{
+				data = JSON.parse(data.replace("\r","").replace("\n","").trim());
+				
+				fnLoadEnd(data);
+			},"text");
+		};
+		
+		function dateToString(date)
+		{
+			var y = date.getFullYear();
+			var  m = date.getMonth();
+			var d = date.getDay();
+			
+			var h = date.getHours();
+			if(h<10) h="0"+h;
+			var m = date.getMinutes();
+			if(m<10) m="0"+m;
+			var s = date.getSeconds();
+			if(s<10) s="0"+s;
+			
+			return h+":"+m+":"+s;
+			//return y+"-"+m+"-"+d+" "+h+":"+m+":"+s;
+		};
+		
+		function  updateThermNode(node, model)
+		{
+			var valueNode = node.find(".js-value");
+			if(model.mesaure=="mC")
+				model.value = model.value/1000;
+			var value = model.value.toFixed(1);
+			valueNode.html(value);
+		
+			var timeNode = node.find(".js-time");
+			var time = dateToString(new Date(model.time*1000));	
+			timeNode.html(time);			
+			
+			var mesValue="°";
+			if(model.mesaure!="mC" && model.mesaure!="C")
+				mesValue = " " + model.mesaure;
+			
+			node.find(".js-mes").html(mesValue);
+		};
+		
+		$(document).ready(function()
+		{
+			$(".js-therm-list button").button();
+			$(".js-buttons-list button").button();
+			checkTherm();
+		});
+	</script>
+</body>
+</html>
